@@ -1,0 +1,34 @@
+body {
+    font-family: 'Roboto', sans-serif;
+}
+
+a {
+  color: #00B7FF;
+}
+
+.wrapper{
+  margin: 0 auto;
+  max-width:600px;
+  background: lightgray;
+  padding: 1rem 2rem;
+}
+
+input{
+  width: 100%;
+  padding: .5rem 1rem;
+  margin-bottom: .5rem;
+  font-size: 1rem;
+}
+
+button{
+  width: 100%;
+  padding: .8rem 1rem;
+  background: orangered;
+  color: #fff;
+  border: none;
+  font-size: 1rem;
+  margin-bottom: .5rem;
+}
+button:hover{
+  background: orange;
+}
