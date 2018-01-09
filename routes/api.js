@@ -3,13 +3,22 @@ var router = express.Router()
 var crypto = require('crypto')
 var https = require('https')
 
+//Dialog Flow Route
 router.use('/dialogflow', require('./dialogflow'))
-router.use('/students', require('./students'))
 
+//Generic Routes
+var schemas = ['classroom', 'course', 'exam', 'exam_grade', 'exam_session_enrollment', 'exam_session', 'exam_time', 'fee', 'notice', 'teacher', 'study_plan']
+schemas.forEach(model_name => {
+    router.use('/' + model_name + 's', require('./generic_router')(model_name))
+});
+
+//Specific Routes
+router.use('/students', require('./students'))
 var Student = require('../models/student')
+
+//--Login
 var Session = require('../models/session')
 
-//Login
 router.post('/login/:validation_secret', function (req, res) {
     console.log(req.body)
     Student.findOne({ 'id_number': req.body.id_number }).
@@ -18,7 +27,6 @@ router.post('/login/:validation_secret', function (req, res) {
                 return res.status(401).json('Accessi negato.')
             }
             var password_hash = crypto.createHash('sha256').update(req.body.password + student.salt).digest('base64')
-
             if (password_hash !== student.password_hash) return res.status(401).json('Accesso negato.')
 
             Session.findOne({ 'validation_secret': req.params.validation_secret }).exec(function (err, session) {

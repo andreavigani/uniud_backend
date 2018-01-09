@@ -4,76 +4,18 @@ var crypto = require('crypto')
 
 var Student = require('../models/student')
 
-router.post('/', function (req, res) {
-
+//Middleware that generates salt and calculates password hash
+router.post('/', function(req,res,next){
+    if (!req.body.password)
+        return res.status(422).json({message: 'Missing password'})
     req.body.salt = crypto.randomBytes(64).toString('base64')
-
     var password_hash = crypto.createHash('sha256').update(req.body.password + req.body.salt).digest('base64')
-
+    delete req.body.password
     req.body.password_hash = password_hash
+    next()
+});
 
-    var student = new Student(req.body)
-
-    student.save(function (err) {
-        if (err)
-            return res.send(err)
-
-        res.json({ message: 'Studente aggiunto!' })
-    })
-
-})
-
-router.get('/', function (req, res) {
-    Student.find(function (err, students) {
-        if (err)
-            res.send(err)
-
-        res.json(students)
-    })
-})
-
-router.get('./:student_id', function (req, res) {
-
-    Student.findOne({ 'id_number': req.params.student_id }).populate('course_id', 'course_name').
-        exec(function (err, student) {
-            if (err)
-                return res.send(err)
-
-            res.json(student)
-        })
-})
-
-router.put('./:student_id', function (req, res) {
-
-    Student.findById(req.params.student_id, function (err, student) {
-
-        if (err)
-            return res.send(err)
-
-        student.id_number = req.body.id_number
-        student.name = req.body.name
-        student.lastname = req.body.lastname
-        student.course_id = req.body.course_id
-
-        student.save(function (err) {
-            if (err)
-                res.send(err)
-
-            res.json({ message: 'Studente aggiornato!' })
-        })
-
-    })
-})
-
-router.delete('./:student_id', function (req, res) {
-    Student.remove({
-        _id: req.params.student_id
-    }, function (err, student) {
-        if (err)
-            res.send(err)
-
-        res.json({ message: 'Studente eliminato!' })
-    })
-})
+//Infer other non-specified routes
+router.use('/', require('./generic_router')('student', {path: 'study_plan', select: ['name']}))
 
 module.exports = router
