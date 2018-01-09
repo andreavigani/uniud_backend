@@ -39,7 +39,7 @@ module.exports = function (model_name, populate_options = null) {
         populate_options.forEach(option => {
             query = query.populate(option)
         });
-            
+
         query.exec(function (err, models) {
             if (err)
                 return res.send(err)

@@ -2,17 +2,19 @@ var express = require('express')
 var router = express.Router()
 var crypto = require('crypto')
 var https = require('https')
-
+var pluralize = require('pluralize')
 //Dialog Flow Route
 router.use('/dialogflow', require('./dialogflow'))
 
 //Generic Routes
-var schemas = ['classroom', 'course', 'exam', 'exam_grade', 'exam_session_enrollment', 'exam_session', 'exam_time', 'fee', 'notice', 'teacher', 'study_plan']
+var schemas = ['classroom', 'course', 'exam_grade', 'exam_session_enrollment', 'exam_session', 'exam_time', 'fee', 'notice', 'teacher', 'study_plan']
 schemas.forEach(model_name => {
-    router.use('/' + model_name + 's', require('./generic_router')(model_name))
+    router.use('/' + pluralize(model_name), require('./generic_router')(model_name))
 });
 
 //Specific Routes
+router.use('/exams', require('./generic_router')('exam', {path: 'teachers', select: ['name', 'lastname']}))
+
 router.use('/students', require('./students'))
 var Student = require('../models/student')
 
