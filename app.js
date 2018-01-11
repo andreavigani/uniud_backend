@@ -27,7 +27,6 @@ var mongo_express_config = require('./mongo_express_config')
 app.use('/mongo_express', mongo_express(mongo_express_config))
 
 //Telegram Bot
-app.set('telegrambot_token', '444364270:AAErJ31-gYmdgceUHl8UHU3IkQauMBDIv_g')
 
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')))
 app.use(logger('dev'))

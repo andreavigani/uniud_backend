@@ -3,6 +3,7 @@ var router = express.Router()
 var crypto = require('crypto')
 var https = require('https')
 var pluralize = require('pluralize')
+var config = require('../config')
 //Dialog Flow Route
 router.use('/dialogflow', require('./dialogflow'))
 
@@ -51,7 +52,7 @@ router.post('/login/:validation_secret', function (req, res) {
                 const options = {
                     hostname: 'api.telegram.org',
                     port: 443,
-                    path: '/bot' + app.get('telegrambot_token') + '/sendMessage',
+                    path: '/bot' + config.telegrambot_token + '/sendMessage',
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
