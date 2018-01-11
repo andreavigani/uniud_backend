@@ -75,11 +75,13 @@ module.exports = function (model_name, populate_options = null) {
                     model[attribute] = req.body[attribute]
                 }
             })
+   
             model.save(function (err) {
                 if (err)
                     return res.send(err)
                 res.json({ message: model_name + ' updated!' })
             })
+            
         })
     })
 

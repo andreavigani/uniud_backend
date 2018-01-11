@@ -4,7 +4,7 @@ var Schema = mongoose.Schema
 var FeeSchema = new Schema({
     invoice: { type: Number, unique: true, required: true },
     mav_number: Number,
-    student_id_number: { type: Schema.Types.ObjectId, ref: 'Student' },
+    student_id_number: { type: String, ref: 'Student' },
     expiration_date: Date,
     description: String,
     amount: Number,

@@ -5,6 +5,9 @@ var crypto = require('crypto')
 var Student = require('../models/student')
 var Session = require('../models/session')
 
+var buttons_list = require('../utils/dialogflow_responses/buttons-list')
+var message = require('../utils/dialogflow_responses/message')
+
 //Session
 router.post('/', function (req, res) {
   console.log('Requested action: ' + req.body.result.action)
@@ -28,12 +31,7 @@ router.post('/', function (req, res) {
 
         var login_url = encodeURI('https://' + req.headers.host + '/login/' + secret)
 
-        var message = 'Effettua il login per accedere a tutte le funzionalità:\n' + login_url
-        var response = {
-          "speech": message,
-          "displayText": message
-        }
-        return res.json(response)
+        return res.json(message('Effettua il login per accedere a tutte le funzionalità:\n' + login_url))
       }
 
       req.id_number = session.id_number
@@ -43,56 +41,42 @@ router.post('/', function (req, res) {
     })
 })
 
-router.use(function (req, res, next) {
-  var response = {
-    "speech": "Webhook non trovato",
-    "displayText": "Webhook non trovato"
-  }
-  return res.json(response)
-})
-
-
 //Students
 router.post('/students', function (req, res) {
+
   Student.find(function (err, students) {
     if (err)
       res.send(err)
 
-    var response = {
-      "speech": "",
-      "displayText": "",
-
-      "messages": [
-        /*{
-          "type": 1,
-          "platform": "telegram",
-          "title": "Ecco la lista degli studenti",
-          "buttons": students.map(s => { return { "text": s.name + ' ' + s.lastname, "postback": "voti " + s.id_number }})
-        },*/
-        {
-          "type": 4,
-          "platform": "telegram",
-          "payload": {
-            "telegram": {
-              "text": "Ecco la lista degli studenti",
-              "reply_markup": {
-                "inline_keyboard":
-                  students.map(s => { return [{ "text": s.name + ' ' + s.lastname, "callback_data": "voti " + s.id_number }] })
-              }
-            }
-          }
-        },
-        {
-          "type": 0,
-          "speech": "Lista studenti"
-        }
-      ],
-      "contextOut": [],
-      "source": "ESSE3"
-    }
+    var response = buttons_list('Ecco la lista degli studenti',
+      students,
+      s => s.name + ' ' + s.lastname,
+      s => "voti" + s.id_number)
 
     res.json(response)
   })
+})
+
+//ExamsGrades
+router.post('/exams', function (req, res) {
+  //Find exam where _id is in study_plans.exams of student.req.id_number
+  Student.findById(req.id_number).populate('exam_grades.exam_id').exec(function (err, student) {
+    console.log(student.exam_grades);
+    if (err)
+      res.send(err)
+
+    var response = buttons_list('Ecco la lista degli esami',
+      student.exam_grades,
+      e => e.exam_id.name + 'Voto:' + e.grade,
+      s => "appelli " + e._id)
+
+    res.json(response)
+  })
+})
+
+
+router.use(function (req, res, next) {
+  return res.json(message("Webhook non trovato"))
 })
 
 module.exports = router

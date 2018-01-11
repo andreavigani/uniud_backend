@@ -7,7 +7,7 @@ var NoticeSchema = new Schema({
   content: String,
   category: String,
   sender: String,
-  recipient_id_number: [{ type: Schema.Types.ObjectId, ref: 'Student' }],
+  recipient_id_number: [{ type: String, ref: 'Student' }],
   broadcast: Boolean
 })
 

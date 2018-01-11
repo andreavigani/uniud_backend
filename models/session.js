@@ -4,7 +4,7 @@ var Schema = mongoose.Schema
 var ObjectId = mongoose.Schema.Types.ObjectId
 
 var SessionSchema = new Schema({
-  id_number: Number,
+  id_number: String,
   user_id: String,
   validation_secret: String
 })
