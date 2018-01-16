@@ -11,9 +11,9 @@ var response = btn_list('Ecco la lista degli studenti:',
 res.json(response)
 */
 
-var buttons_list_generator = function (message, entries, text_cb, postback_cb) {
-    var response = require('./message')(message)
-    console.log(message)
+var buttons_list_generator = function (message, entries, text_cb, postback_cb, contextOut = []) {
+    var response = require('./message')(message, contextOut)
+
     var inline_keyboard = entries.map(entry => {
         return [
             {
@@ -24,33 +24,23 @@ var buttons_list_generator = function (message, entries, text_cb, postback_cb) {
     }
     );
 
-    response.messages = [
-        /*{
-          "type": 1,
-          "platform": "telegram",
-          "title": "Ecco la lista degli studenti",
-          "buttons": students.map(s => { return { "text": s.name + ' ' + s.lastname, "postback": "voti " + s.id_number }})
-        },*/
+    response.messages.push(...[
         {
             "type": 4,
             "platform": "telegram",
             "payload": {
                 "telegram": {
                     "text": message,
+                    "parse_mode": "html",
                     "reply_markup": {
                         "inline_keyboard":
                             inline_keyboard
                     }
                 }
             }
-        },
-        {
-            "type": 0,
-            "speech": message
         }
-    ]
+    ])
 
-    response.contextOut = []
 
     return response
 }

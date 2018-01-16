@@ -9,10 +9,46 @@ var api = require('./routes/api')
 
 app = express()
 
+app.listen(3000, function () {
+  console.log('Uniud app listening on port 3000!');
+});
+
+//Start mongod on default port
+const spawn = require('child_process').spawn;
+const pipe = spawn('mongod', ['--dbpath=' + path.join(__dirname, 'data/db')])
+
 //Database
 var mongoose = require('mongoose')
 mongoose.Promise = global.Promise
 mongoose.connect('mongodb://localhost/database', { useMongoClient: true })
+
+//Print mongod messages to console
+pipe.stdout.on('data', function (data) {
+  console.log(data.toString('utf8'));
+});
+
+pipe.stderr.on('data', (data) => {
+  console.log(data.toString('utf8'));
+});
+
+pipe.on('close', (code) => {
+  console.log('Process exited with code: '+ code);
+});
+
+//Do this before exiting
+var cleanup = function(){
+  mongoose.disconnect()
+  console.log('Disonnected from database')
+  pipe.kill('SIGINT')
+  console.log('mongod stopped')
+}
+
+// Catch CTRL+C
+process.on ('SIGINT', () => {
+  process.exit (0);
+});
+
+process.on('exit', cleanup);
 
 var db = mongoose.connection
 db.on('error', console.error.bind(console, 'connection error:'))
@@ -23,11 +59,9 @@ db.once('open', function () {
 //Mongo Express
 var mongo_express = require('mongo-express/lib/middleware')
 var mongo_express_config = require('./mongo_express_config')
-
 app.use('/mongo_express', mongo_express(mongo_express_config))
 
-//Telegram Bot
-
+//App
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')))
 app.use(logger('dev'))
 app.use(bodyParser.json())

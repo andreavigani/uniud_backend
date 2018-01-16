@@ -1,6 +1,6 @@
 {
   "name": "uniud",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
     "mongo": "mongod --dbpath data/db",
@@ -18,5 +18,18 @@
     "morgan": "~1.9.0",
     "pluralize": "^7.0.0",
     "serve-favicon": "~2.4.5"
-  }
+  },
+  "description": "",
+  "main": "app.js",
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andreavigani/uniud_backend.git"
+  },
+  "author": "Andrea Vigani",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/andreavigani/uniud_backend/issues"
+  },
+  "homepage": "https://github.com/andreavigani/uniud_backend#readme"
 }

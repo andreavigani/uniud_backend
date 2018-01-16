@@ -1,10 +1,17 @@
 
-var message_generator = function (message) {
+var message_generator = function (message, contextOut = []) {
     var response = {
         "speech": message,
         "displayText": message,
-        "source": "ESSE3"
+        "source": "ESSE3",
+        "messages": [{
+            "type": 0,
+            "speech": message
+        }]
     }
+
+    response.contextOut = contextOut
+
     return response
 }
 

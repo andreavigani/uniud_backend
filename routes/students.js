@@ -79,7 +79,7 @@ router.put('/:id_number', function (req, res) {
 
         study_plan.findById(req.body.study_plan, function (err, studyplan) {
             //Regen ExamGrades
-            if (regenerate_exam_grades) {
+            if (regenerate_exam_grades && studyplan) {
                 student.exam_grades = studyplan.exams.map(exam => {
                     return {
                         exam_id: exam,
