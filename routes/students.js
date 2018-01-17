@@ -98,6 +98,32 @@ router.put('/:id_number', function (req, res) {
     })
 });
 
+//Add an optional_exam in exam_grades
+router.post('/:id_number/optional_exam_grade/:exam_id', function (req, res) {
+    Student.findById(req.params.id_number, function (err, student) {
+        if (err)
+            return res.send(err)
+        if (!student)
+            return res.status(404).json({ message: 'student not found' })
+
+        var exam_grade = { 
+            exam_id: req.params.exam_id,
+            grade: null,
+            confirmation_date: null
+        }
+
+        student.exam_grades.push(exam_grade)
+    
+        console.log(student.exam_grades)
+        student.save(function (err) {
+            if (err)
+                return res.send(err)
+            res.json({ message: 'optional exam grade added!' })
+        })
+
+    })
+});
+
 //Infer other non-specified routes
 router.use('/', require('./generic_router')('student', { path: 'study_plan', select: ['name'] }))
 
