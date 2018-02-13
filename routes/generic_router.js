@@ -23,79 +23,57 @@ module.exports = function (model_name, populate_options = null) {
     populate_options = [].concat(populate_options || []); //Accept both single object and array of objects
 
     //ADD
-    router.post('/', function (req, res) {
-        console.log(req.body)
+    router.post('/', (req, res) => {
         var model = new schema(req.body)
-        model.save(function (err) {
-            if (err)
-                return res.send(err)
-            res.json({ message: model_name + ' added!' })
-        })
+        model.save()
+            .then(() => res.json({ message: model_name + ' added!' }))
+            .catch(error => res.json(error))
     })
 
     //GET ALL
-    router.get('/', function (req, res) {
+    router.get('/', (req, res) => {
         var query = schema.find()
         populate_options.forEach(option => {
             query = query.populate(option)
         });
-
-        query.exec(function (err, models) {
-            if (err)
-                return res.send(err)
-            res.json(models)
-        })
+        query.exec()
+            .then(models => res.json(models))
+            .catch(error => res.json(error))
     })
 
     //GET SINGLE
-    router.get('/:model_id', function (req, res) {
+    router.get('/:model_id', (req, res) => {
         var query = schema.findOne({ '_id': req.params.model_id })
         populate_options.forEach(option => {
             query = query.populate(option)
         });
-
-        query.exec(function (err, model) {
-            if (!model)
-                return res.status(404).json({ message: model_name + ' not found' })
-            if (err)
-                return res.send(err)
-            res.json(model)
-        })
+        query.exec()
+            .then(model => model ? res.json(model) : res.status(404).json({ message: model_name + ' not found' }))
+            .catch(error => res.json(error))
     })
 
     //UPDATE SINGLE
     router.put('/:model_id', function (req, res) {
-        schema.findById(req.params.model_id, function (err, model) {
-            if (err)
-                return res.send(err)
-            if (!model)
-                return res.status(404).json({ message: model_name + ' not found' })
-            Object.keys(req.body).forEach(attribute => {
-                if (attribute !== "_id") {
-                    model[attribute] = req.body[attribute]
-                }
+        schema.findById(req.params.model_id).exec()
+            .then(model => {
+                if (!model) return res.status(404).json({ message: model_name + ' not found' })
+                Object.keys(req.body).forEach(attribute => {
+                    if (attribute !== "_id") {
+                        model[attribute] = req.body[attribute]
+                    }
+                })
+                return model.save()
             })
-   
-            model.save(function (err) {
-                if (err)
-                    return res.send(err)
-                res.json({ message: model_name + ' updated!' })
-            })
-            
-        })
+            .then(() => res.json({ message: model_name + ' updated!' }))
+            .catch(err => res.send(err))
     })
 
     //DELETE
     router.delete('/:model_id', function (req, res) {
-        schema.remove({
-            _id: req.params.model_id
-        }, function (err, model) {
-            if (!model)
-                return res.status(404).json({ message: model_name + ' not found' })
-            if (err)
-                return res.send(err)
-            res.json({ message: model_name + ' deleted!' })
-        })
+        schema.findById(req.params.model_id)
+            .then(model => model ? model.remove() : Promise.reject({ message: model_name + ' not found' }))
+            .then(response => res.json({ message: model_name + ' deleted!' }))
+            .catch(err => res.json(err))
     })
 
     return router;

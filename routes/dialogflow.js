@@ -24,30 +24,34 @@ router.post('/', function (req, res) {
     user_id = req.body.originalRequest.data.message.from.id
   }
 
-  Session.findOne({ 'user_id': user_id }).
-    exec(function (err, session) {
-      if (err) {
-        return res.send(err)
+  Session.findOne({
+    'user_id': user_id
+  }).
+  exec(function (err, session) {
+    if (err) {
+      return res.send(err)
+    }
+    if (!session || !session.id_number) {
+
+      var secret = crypto.randomBytes(16).toString('base64').replace(/\//g, '0').replace(/=/g, '')
+      if (!session) {
+        session = new Session({
+          user_id: user_id
+        })
       }
-      if (!session || !session.id_number) {
+      session.validation_secret = secret
+      session.save()
 
-        var secret = crypto.randomBytes(16).toString('base64').replace(/\//g, '0').replace(/=/g, '')
-        if (!session) {
-          session = new Session({ user_id: user_id })
-        }
-        session.validation_secret = secret
-        session.save()
+      var login_url = encodeURI('https://' + req.headers.host + '/login/' + secret)
 
-        var login_url = encodeURI('https://' + req.headers.host + '/login/' + secret)
+      return res.json(message('Vai al seguente link per effettuare il login ed accedere a tutte le funzionalità:\n' + login_url))
+    }
 
-        return res.json(message('Effettua il login al seguente link per accedere a tutte le funzionalità:\n' + login_url))
-      }
+    req.id_number = session.id_number
 
-      req.id_number = session.id_number
-
-      req.url = req.url + req.body.result.action
-      router.handle(req, res)
-    })
+    req.url = req.url + req.body.result.action
+    router.handle(req, res)
+  })
 })
 
 //STUDENTS
@@ -73,7 +77,7 @@ router.post('/exams', function (req, res) {
       return res.send(err)
     var response = buttons_list('Ecco il tuo <b>libretto</b> (tocca per mostrare appelli):',
       student.exam_grades,
-      e => e.grade ? e.exam_id.name + ' | ' + e.grade + '/30' : e.exam_id.name,
+      e => e.grade ? e.exam_id.name + ' | ' + e.grade + '/30 ' + '\u2705' : e.exam_id.name,
       e => e.grade ? 'Dettagli ' + e._id : 'Appelli ' + e.exam_id.name)
     res.json(response)
   })
@@ -83,55 +87,60 @@ router.post('/exams', function (req, res) {
 var Exam = require('../models/exam')
 var ExamSession = require('../models/exam_session')
 
-router.post('/exam_sessions', function (req, res) {
+router.post('/exam_sessions', (req, res) => {
 
   var exam_name = req.body.result.parameters.exam_name
 
   if (!exam_name) {
 
-    Student.findById(req.id_number).populate('exam_grades.exam_id').exec(function (err, student) {
-      if (err)
-        return res.send(err)
-      var response = buttons_list('Per quale corso?\nEcco i tuoi corsi con appelli disponibili:',
-        student.exam_grades.filter(eg => !eg.grade),
-        e => e.exam_id.name,
-        e => 'Appelli ' + e.exam_id.name)
-      return res.json(response)
-    })
+    Student.findById(req.id_number).populate('exam_grades.exam_id').exec()
+      .catch(err => res.send(err))
+      .then(student => {
+        var response = buttons_list('Per quale corso?\nEcco i tuoi corsi con appelli disponibili:',
+          student.exam_grades.filter(eg => !eg.grade),
+          e => e.exam_id.name,
+          e => 'Appelli ' + e.exam_id.name)
+        return res.json(response)
+      })
 
   } else {
-    Exam.findOne({ 'name': new RegExp(exam_name, "i") }, function (err, exam) { //presenti in student.study_plan
 
-      if (!exam) {
-        Student.findById(req.id_number).populate('exam_grades.exam_id').exec(function (err, student) {
-          if (err)
-            return res.send(err)
+    Exam.findOne({
+        'name': new RegExp(exam_name, "i")
+      }).exec()
+      .then(exam => {
+        if (!exam) {
+          return Student.findById(req.id_number).populate('exam_grades.exam_id').exec()
+            .then(student => {
+              var response = buttons_list('Corso non trovato.\nPuoi scegliere fra i seguenti:',
+                student.exam_grades.filter(eg => !eg.grade),
+                e => e.exam_id.name,
+                e => 'Appelli ' + e.exam_id.name)
+              res.json(response)
+            })
+        } else {
+          return ExamSession.find({
+              'exam_id': exam._id
+            }).exec()
+            .then(exam_sessions => {
+              if (exam_sessions.length == 0) {
+                return message("Nessun appello disponibile per " + exam.name + ".")
+              }
+              var today = new Date().toISOString()
+              //IF NOT EXPIRED
+              //exam_sessions = exam_sessions.filter(dt => dt.session_date - today > 0)
+              
+              var response = buttons_list('Appelli disponibili per <b>' + exam.name + '</b>:',
+                exam_sessions,
+                es => es.name + ' | ' + es.session_date.toFormattedDateTime(),
+                es => 'Iscrivimi ' + es._id)
+              res.json(response)
+            })
 
-          var response = buttons_list('Corso non trovato.\nPuoi scegliere fra i seguenti:',
-            student.exam_grades.filter(eg => !eg.grade),
-            e => e.exam_id.name,
-            e => 'Appelli ' + e.exam_id.name)
-          return res.json(response)
-        })
-      } else {
-        ExamSession.find({ 'exam_id': exam._id }, function (err, exam_sessions) {
-          if (err)
-            res.send(err)
-
-          if (exam_sessions.length == 0) { return res.json(message("Nessun appello disponibile per " + exam.name + ".")) }
-          var response = buttons_list('Appelli disponibili per <b>' + exam.name + '</b>:',
-            //mostrare solo Date appelli futuri
-            exam_sessions,
-            es => es.name + ' | ' + es.session_date.toFormattedDateTime(),
-            es => 'Iscrivimi ' + es._id)
-          return res.json(response)
-
-        })
-      }
-
-    })
+        }
+      })
+      .catch(err => res.send(err))
   }
-
 })
 
 //EXAM SESSION ENROLLMENTS
@@ -139,8 +148,15 @@ var ExamSessionEnrollment = require('../models/exam_session_enrollment')
 
 //Get Exam Session Enrollments
 router.post('/exam_session_enrollments', function (req, res) {
-  ExamSessionEnrollment.find({ 'student_id_number': req.id_number })
-    .populate({ path: 'exam_session_id', populate: { path: 'exam_id' } })
+  ExamSessionEnrollment.find({
+      'student_id_number': req.id_number
+    })
+    .populate({
+      path: 'exam_session_id',
+      populate: {
+        path: 'exam_id'
+      }
+    })
     .exec((err, exam_session_enrollments) => {
       //console.log(JSON.stringify(exam_session_enrollments, null, '\t'))
       var response = buttons_list('<b>Lista prenotazioni:</b> (tocca per cancellare)',
@@ -159,7 +175,9 @@ router.post('/add_exam_session_enrollment', function (req, res) {
     student_id_number: req.id_number
   })
 
-  ExamSessionEnrollment.find({ 'student_id_number': req.id_number })
+  ExamSessionEnrollment.find({
+      'student_id_number': req.id_number
+    })
     .populate('exam_id', 'name').exec(function (err, exam_session_enrollments) {
       if (err)
         res.send(err)
@@ -201,8 +219,74 @@ router.post('/del_exam_session_enrollment', function (req, res) {
   })
 })
 
+//TIMES
+var ExamTime = require('../models/exam_time')
+router.post('/exam_times', function (req, res) {
 
+  var days_it = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato']
+  var day = days_it[new Date(req.body.result.parameters.date).getDay()]
+
+  var exam_name = req.body.result.parameters.exam_name
+
+  ExamTime.find().populate('exam_id', 'name').populate('classroom_id', 'name').exec(function (err, examtimes) {
+
+    if (exam_name) {
+      examtimes = examtimes.filter(function (et) {
+        var reg_exp = new RegExp(exam_name, "gi");
+        if (reg_exp.test(et.exam_id.name)) exam_name = et.exam_id.name
+        return et.exam_id.name == exam_name
+      });
+    }
+
+    if (day) {
+      examtimes.times = examtimes.map(examtime =>
+        examtime.times = examtime.times.filter(function (etd) {
+          return etd.day_of_week == day
+        })
+      )
+    }
+    console.log(JSON.stringify(examtimes))
+    var response = examtimes.map(examtime => examtime.times !== undefined && examtime.times.length ?
+      "Orari di " + examtime.exam_id.name + "\n" +
+      examtime.times.map(time => time.day_of_week + " " + time.start_time.getHours() + ":" + time.start_time.getMinutes() + " - " + time.end_time.getHours() + ":" + time.end_time.getMinutes()).join('\n') + '\n' +
+      "Aula " + examtime.classroom_id.name + "\n" : ''
+    ).join('\n')
+    if (!response) response = "Nessuna orario di lezione trovato."
+    res.json(message(response))
+
+  })
+})
+
+//TEACHERS
+var Teacher = require('../models/teacher')
+router.post('/teacher_contacts', function (req, res) {
+  lastname = req.body.result.parameters.lastname;
+  Teacher.findOne({
+    'lastname': new RegExp(lastname, "i")
+  }).
+  exec(function (err, teacher) {
+    if (err)
+      return res.send(err)
+    if (!teacher)
+      res.json(message("Docente non trovato."))
+    else {
+      var response = message(
+        "Contatti di " + teacher.name + " " + teacher.lastname + ":\n" +
+        "\u2709 " + teacher.email + "\n" +
+        "\u260E " + teacher.phone
+      )
+      res.json(response)
+    }
+  })
+})
+
+
+
+
+//FALLBACK
 router.use(function (req, res, next) {
+  if (req.body.result.action == "login")
+    return res.json(message("Hai già effettuato l'accesso."))
   return res.json(message("Webhook non trovato"))
 })
 

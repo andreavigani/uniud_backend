@@ -12,12 +12,23 @@ a {
   background: lightgray;
   padding: 1rem 2rem;
 }
-
-input{
+.wrapper-full {
+  margin: 0 auto;
+  padding: 2rem;
+}
+legend {
+  text-decoration: underline;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+input, textarea{
   width: 100%;
   padding: .5rem 1rem;
   margin-bottom: .5rem;
   font-size: 1rem;
+}
+input[type=checkbox] {
+  width: 1.5rem;
 }
 
 button{
@@ -28,7 +39,19 @@ button{
   border: none;
   font-size: 1rem;
   margin-bottom: .5rem;
+  margin-top: 1rem;
+  cursor: pointer;
 }
 button:hover{
   background: orange;
+}
+
+/*Grid*/
+.row {
+  display: inline-flex;
+}
+.col-md-6 {
+  width:50%;
+  padding: 1rem;
+  box-sizing: border-box;
 }

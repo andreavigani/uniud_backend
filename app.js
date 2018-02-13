@@ -76,6 +76,10 @@ app.use('/login/:validation_token', function (req, res) {
   res.sendFile(path.join(__dirname, 'public/login.html'))
 })
 
+app.use('/segreteria/', function (req, res) {
+  res.sendFile(path.join(__dirname, 'public/segreteria.html'))
+})
+
 //404
 app.use(function (req, res, next) {
   var err = new Error('Not Found')
