@@ -11,6 +11,8 @@
     "cookie-parser": "~1.4.3",
     "debug": "~2.6.9",
     "express": "~4.15.5",
+    "google": "^2.1.0",
+    "google-search": "0.0.5",
     "jade": "~1.11.0",
     "mongo-express": "^0.44.0",
     "mongodb": "^3.0.1",

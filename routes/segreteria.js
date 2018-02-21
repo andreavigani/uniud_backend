@@ -13,34 +13,34 @@ var formatted_date_time = require('../utils/formatted-date-time');
 
 //Send Message Config
 function sendMessage(postData){
-const options = {
-    hostname: 'api.telegram.org',
-    port: 443,
-    path: '/bot' + config.telegrambot_token + '/sendMessage',
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(postData),
-        'Accept': 'application/json'
+    const options = {
+        hostname: 'api.telegram.org',
+        port: 443,
+        path: '/bot' + config.telegrambot_token + '/sendMessage',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData),
+            'Accept': 'application/json'
+        }
     }
-}
 
-const https_req = https.request(options, (res) => {
-    console.log(`STATUS: ${res.statusCode}`)
-    console.log(`HEADERS: ${JSON.stringify(res.headers)}`)
-    res.setEncoding('utf8')
-    res.on('data', (chunk) => {
-        console.log(`BODY: ${chunk}`)
+    const https_req = https.request(options, (res) => {
+        console.log(`STATUS: ${res.statusCode}`)
+        console.log(`HEADERS: ${JSON.stringify(res.headers)}`)
+        res.setEncoding('utf8')
+        res.on('data', (chunk) => {
+            console.log(`BODY: ${chunk}`)
+        })
+        res.on('end', () => {})
     })
-    res.on('end', () => {})
-})
 
-https_req.on('error', (e) => {
-    console.error(`problem with request: ${e.message}`)
-})
+    https_req.on('error', (e) => {
+        console.error(`problem with request: ${e.message}`)
+    })
 
-https_req.write(postData)
-https_req.end()
+    https_req.write(postData)
+    https_req.end()
 }
 
 //Send Notice

@@ -2,11 +2,19 @@ var express = require('express')
 var router = express.Router()
 var crypto = require('crypto')
 
+var GoogleSearch = require('google-search');
+var googleSearch = new GoogleSearch({
+  key: 'AIzaSyCP-bw1CNbqT8f0IcprSpGzpt7iiWapP5g',
+  cx: '005939994384966855335:2ruwalevm8y'
+});
+
+
 var Student = require('../models/student')
 var Session = require('../models/session')
 
 var buttons_list = require('../utils/dialogflow_responses/buttons-list')
 var message = require('../utils/dialogflow_responses/message')
+var card = require('../utils/dialogflow_responses/card')
 var formatted_date_time = require('../utils/formatted-date-time');
 
 //SESSION
@@ -129,7 +137,7 @@ router.post('/exam_sessions', (req, res) => {
               var today = new Date().toISOString()
               //IF NOT EXPIRED
               //exam_sessions = exam_sessions.filter(dt => dt.session_date - today > 0)
-              
+
               var response = buttons_list('Appelli disponibili per <b>' + exam.name + '</b>:',
                 exam_sessions,
                 es => es.name + ' | ' + es.session_date.toFormattedDateTime(),
@@ -280,6 +288,52 @@ router.post('/teacher_contacts', function (req, res) {
   })
 })
 
+//WEB SEARCH
+router.post('/web_search', function (req, res) {
+  if(req.body.result.parameters.keywords)
+    keywords = req.body.result.parameters.keywords
+  else
+    keywords = req.body.result.resolvedQuery
+
+  var search_result
+  googleSearch.build({
+    q: keywords,
+    start: 5,
+    gl: "it",
+    lr: "lang_it",
+    num: 1,
+    siteSearch: "https://www.uniud.it/"
+  }, function (error, response) {
+    if (error) return res.send(error)
+    if (response.items) {
+      response.items.map(sr => {
+        search_result = {
+          "title": sr.title,
+          "snippet": sr.snippet,
+          "link": sr.link
+        }
+      })
+      var response = card(
+        "Mi dispiace, non sono in grado di risponderti. \n" +
+        "Cercando online ho trovato qualcosa che potrebbe aiutarti: \n", search_result)
+    } else {
+      var answers = [
+        "Mi dispiace, purtroppo non sono in grado di risponderti.",
+        "Penso di non aver capito, potresti ripetere?",
+        "Scusami, non so proprio come risponderti.",
+        "Mi dispiace ma non sono stato creato per questo.\nDigita / per accedere alla lista dei comandi principali."
+      ]
+      var i = Math.floor(Math.random() * (3 - 0 + 1) + 0);
+      console.log(i)
+      var answer = answers[i]
+      console.log(answer)
+      var response = message(answer)
+    }
+
+    res.json(response)
+  });
+
+})
 
 
 

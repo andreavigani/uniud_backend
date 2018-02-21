@@ -11,7 +11,7 @@ document.getElementById('notice').onsubmit = function (e) {
         broadcast: document.getElementsByName('broadcast')[0].value
     };
 
-    fetch('/segreteria/notice/',
+    fetch('/api/segreteria/notice/',
         {
             method: 'POST',
             headers: {
@@ -26,7 +26,7 @@ document.getElementById('notice').onsubmit = function (e) {
             } else {
                 document.getElementById('notice-response').innerHTML = "Si è verificato un'errore nell'invio della comunicazione.";
             }
-            return response.json();
+            //return response.json();
         });
 }
 
@@ -41,7 +41,7 @@ document.getElementById('examsession').onsubmit = function (e) {
         expiration_date: document.getElementsByName('expiration_date')[0].value,
     };
 
-    fetch('/segreteria/examsession/',
+    fetch('/api/segreteria/examsession/',
         {
             method: 'POST',
             headers: {
@@ -56,6 +56,6 @@ document.getElementById('examsession').onsubmit = function (e) {
             } else {
                 document.getElementById('examsession-response').innerHTML = "Si è verificato un'errore nell'aggiunta dell'appello.";
             }
-            return response.json();
+            //return response.json();
         });
 }

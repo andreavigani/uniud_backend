@@ -10,7 +10,7 @@ var api = require('./routes/api')
 app = express()
 
 app.listen(3000, function () {
-  console.log('Uniud app listening on port 3000!');
+  console.log('UniUd app listening on port 3000!');
 });
 
 //Start mongod on default port

@@ -8,6 +8,9 @@ var config = require('../config')
 //Dialog Flow Route
 router.use('/dialogflow', require('./dialogflow'))
 
+//Segreteria Route
+router.use('/segreteria', require('./segreteria'))
+
 //Generic Routes
 var schemas = ['classroom', 'exam_grade', 'exam_session_enrollment', 'exam_time', 'fee', 'notice', 'teacher']
 schemas.forEach(model_name => {
@@ -107,8 +110,5 @@ router.post('/login/:validation_secret', function (req, res) {
 
     })
 })
-
-//Segreteria Route
-router.use('/segreteria', require('./segreteria'))
 
 module.exports = router

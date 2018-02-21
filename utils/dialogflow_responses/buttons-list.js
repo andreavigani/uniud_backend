@@ -31,7 +31,7 @@ var buttons_list_generator = function (message, entries, text_cb, postback_cb, c
             "payload": {
                 "telegram": {
                     "text": message,
-                    "parse_mode": "html",
+                    "parse_mode": "HTML",
                     "reply_markup": {
                         "inline_keyboard":
                             inline_keyboard
