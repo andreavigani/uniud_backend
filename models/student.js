@@ -5,7 +5,7 @@ var crypto = require('crypto')
 var ExamGradeSchema = new Schema({
   exam_id: { type: Schema.Types.ObjectId, ref: 'Exam' },
   grade: { type: Number, min: 18, max: 30 },
-  status: { type: String, enum: ['Accettato', 'Rifiutato', 'In attesa'], default: 'In attesa' },
+  status: { type: String, enum: ['Accetto', 'Rifiuto', 'In attesa'], default: 'In attesa' },
   confirmation_date: Date
 })
 

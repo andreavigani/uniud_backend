@@ -1,16 +1,3 @@
-/*
-Example usage:
-
-var btn_list = require('buttons-list')
-
-var response = btn_list('Ecco la lista degli studenti:', 
-    students,
-    s => s.first_name + ' ' + s.last_name,
-    s => 'voti ' + s.id_number)
-
-res.json(response)
-*/
-
 var buttons_list_generator = function (message, entries, text_cb, postback_cb, contextOut = []) {
     var response = require('./message')(message, contextOut)
 

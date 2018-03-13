@@ -12,9 +12,10 @@ var googleSearch = new GoogleSearch({
 var Student = require('../models/student')
 var Session = require('../models/session')
 
-var buttons_list = require('../utils/dialogflow_responses/buttons-list')
 var message = require('../utils/dialogflow_responses/message')
+var buttons_list = require('../utils/dialogflow_responses/buttons-list')
 var card = require('../utils/dialogflow_responses/card')
+var inline_keyboard = require('../utils/dialogflow_responses/inline-keyboard')
 var formatted_date_time = require('../utils/formatted-date-time');
 
 //SESSION
@@ -85,8 +86,71 @@ router.post('/exams', function (req, res) {
       return res.send(err)
     var response = buttons_list('Ecco il tuo <b>libretto</b> (tocca per mostrare appelli):',
       student.exam_grades,
-      e => e.grade ? e.exam_id.name + ' | ' + e.grade + '/30 ' + '\u2705' : e.exam_id.name,
-      e => e.grade ? 'Dettagli ' + e._id : 'Appelli ' + e.exam_id.name)
+      e => e.grade && e.confirmation_date ? e.exam_id.name + ' | ' + e.grade + '/30 ' + '\u2705' : e.exam_id.name,
+      e => e.grade && e.confirmation_date ? 'Dettagli ' + e._id : 'Appelli ' + e.exam_id.name)
+    res.json(response)
+  })
+})
+
+//EXAM GRADES RESULTS
+router.post('/exams_results', function (req, res) {
+  Student.findById(req.id_number).populate('exam_grades.exam_id').exec(function (err, student) {
+    if (err)
+      return res.send(err)
+      
+      student.exam_grades = student.exam_grades.filter(eg => eg.grade && eg.status == "In attesa")
+      if (student.exam_grades.length == 0) {
+        var response = message('Nessun esito disponibile.')
+      } else {
+        var response = buttons_list('<b>Bacheca esiti</b> (tocca per accettare o rifiutare):',
+          student.exam_grades,
+          e => e.exam_id.name + ' | ' + e.grade + '/30 ' + '\u231B',
+          e => 'Azione esito ' + e._id)
+      }
+    res.json(response)
+  })
+})
+//ACTION GRADES RESULTS
+router.post('/action_exam_result', function (req, res) {
+  var examgrade_id = req.body.result.parameters.examgrade_id
+  var actions = [{
+      "text": "Accetto",
+      "callback": "Accetto " + examgrade_id
+    },
+    {
+      "text": "In attesa",
+      "callback": "In attesa " + examgrade_id
+    },
+    {
+      "text": "Rifiuto",
+      "callback": "Rifiuto " + examgrade_id
+    }
+  ]
+  var response = inline_keyboard('Seleziona una scelta:', actions)
+  res.json(response)
+
+})
+
+//UPDATE GRADES RESULTS
+router.post('/update_exam_result', function (req, res) {
+  var choice = req.body.result.parameters.choice
+  var examgrade_id = req.body.result.parameters.examgrade_id
+
+  Student.findById(req.id_number).exec(function (err, student) {
+    if (err)
+      return res.send(err)
+    console.log(student.exam_grades)
+    student.exam_grades = student.exam_grades.map(function (eg) {
+      if (eg._id == examgrade_id) {
+        eg.status = choice
+        if (choice == "Accetto")
+          eg.confirmation_date = new Date;
+      }
+      return eg
+    })
+    student.save()
+
+    var response = message('Esito esame aggiornato!')
     res.json(response)
   })
 })
@@ -290,7 +354,7 @@ router.post('/teacher_contacts', function (req, res) {
 
 //WEB SEARCH
 router.post('/web_search', function (req, res) {
-  if(req.body.result.parameters.keywords)
+  if (req.body.result.parameters.keywords)
     keywords = req.body.result.parameters.keywords
   else
     keywords = req.body.result.resolvedQuery
