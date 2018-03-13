@@ -8,7 +8,8 @@
 
 <body>
     <section class="wrapper-full">
-        <h1 id="title"><img class="logo" src="images/uniud_logo.png">Pannello amministrazione segreteria Uniud</h1>
+        <h1 id="title">
+            <img class="logo" src="images/uniud_logo.png">Pannello amministrazione segreteria Uniud</h1>
         <div class="row">
             <div class="col-md-6">
                 <form id="notice">
@@ -18,7 +19,7 @@
                     <input type="text" name="category" placeholder="Categoria">
                     <input type="text" name="sender" placeholder="Mittente" required>
                     <textarea rows="8" name="content" placeholder="Messaggio" required></textarea>
-                    <input type="text" name="recipient_id_number" placeholder="Matricola studente">
+                    <input type="text" name="recipient_id_number" placeholder="Matricola studente" disabled>
                     <input type="checkbox" id="broadcast" name="broadcast" checked>
                     <label for="broadcast">Invia a tutti gli studenti</label>
                     <button type="submit" id="send-notice">Invia Comunicazione</button>
@@ -29,15 +30,29 @@
                 <form id="examsession">
                     <legend>Nuovo Appello</legend>
                     <input type="text" name="name" placeholder="Nome" required>
-                    <input type="text" name="exam_id" placeholder="ID Corso" required>
+                    <label>Corso</label>
+                    <select name="exam_id" id="examlist1" required>
+                    </select>
                     <label>Data appello</label>
-                    <input type="date" name="session_date">
+                    <input type="datetime-local" name="session_date">
                     <label>Data di pubblicazione</label>
-                    <input type="date" name="publication_date">
+                    <input type="datetime-local" name="publication_date">
                     <label>Data di scadenza iscrizione</label>
-                    <input type="date" name="expiration_date">
+                    <input type="datetime-local" name="expiration_date">
                     <button type="submit" id="send-notice">Aggiungi Appello</button>
                     <strong id="examsession-response"></strong>
+                </form>
+            </div>
+            <div class="col-md-6">
+                <form id="examgraderesult">
+                    <legend>Nuovo Esito</legend>
+                    <input type="text" name="id_number" placeholder="Matricola studente">
+                    <label>Corso</label>
+                    <select name="exam_id2" id="examlist2" required>
+                    </select>
+                    <input type="number" name="grade" placeholder="Voto">
+                    <button type="submit" id="send-notice">Aggiungi Esito</button>
+                    <strong id="examgraderesult-response"></strong>
                 </form>
             </div>
         </div>

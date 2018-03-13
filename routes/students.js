@@ -49,7 +49,7 @@ router.put('/:id_number/exam_grade/:exam_id', function (req, res) {
             }
         })
 
-        student.exam_grades.push(exam_grade)
+        //student.exam_grades.push(exam_grade)
     
         console.log(student.exam_grades)
         student.save(function (err) {

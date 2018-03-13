@@ -86,8 +86,11 @@ router.post('/exams', function (req, res) {
       return res.send(err)
     var response = buttons_list('Ecco il tuo <b>libretto</b> (tocca per mostrare appelli):',
       student.exam_grades,
-      e => e.grade && e.confirmation_date ? e.exam_id.name + ' | ' + e.grade + '/30 ' + '\u2705' : e.exam_id.name,
-      e => e.grade && e.confirmation_date ? 'Dettagli ' + e._id : 'Appelli ' + e.exam_id.name)
+      e => e.grade && e.confirmation_date ? e.exam_id.name + ' | ' + e.grade + '/30 ' + '\u2705' :
+      (e.grade ? e.exam_id.name + ' | ' + e.grade + '/30 ' + '\u231B' : e.exam_id.name),
+      e => e.grade && e.confirmation_date ? 'Dettagli ' + e._id :
+      (!e.grade ? 'Appelli ' + e.exam_id.name : 'Azione esito ' + e._id)
+    )
     res.json(response)
   })
 })
@@ -97,16 +100,16 @@ router.post('/exams_results', function (req, res) {
   Student.findById(req.id_number).populate('exam_grades.exam_id').exec(function (err, student) {
     if (err)
       return res.send(err)
-      
-      student.exam_grades = student.exam_grades.filter(eg => eg.grade && eg.status == "In attesa")
-      if (student.exam_grades.length == 0) {
-        var response = message('Nessun esito disponibile.')
-      } else {
-        var response = buttons_list('<b>Bacheca esiti</b> (tocca per accettare o rifiutare):',
-          student.exam_grades,
-          e => e.exam_id.name + ' | ' + e.grade + '/30 ' + '\u231B',
-          e => 'Azione esito ' + e._id)
-      }
+
+    student.exam_grades = student.exam_grades.filter(eg => eg.grade && eg.status == "In attesa")
+    if (student.exam_grades.length == 0) {
+      var response = message('Nessun esito disponibile.')
+    } else {
+      var response = buttons_list('<b>Bacheca esiti</b> (tocca per accettare o rifiutare):',
+        student.exam_grades,
+        e => e.exam_id.name + ' | ' + e.grade + '/30 ' + '\u231B',
+        e => 'Azione esito ' + e._id)
+    }
     res.json(response)
   })
 })
@@ -145,7 +148,12 @@ router.post('/update_exam_result', function (req, res) {
         eg.status = choice
         if (choice == "Accetto")
           eg.confirmation_date = new Date;
+        if (choice == "Rifiuto") {
+          eg.status = "In attesa"
+          eg.grade = null;
+        }
       }
+
       return eg
     })
     student.save()
@@ -195,17 +203,19 @@ router.post('/exam_sessions', (req, res) => {
               'exam_id': exam._id
             }).exec()
             .then(exam_sessions => {
+              console.log("ssd " + exam_sessions.length)
               if (exam_sessions.length == 0) {
-                return message("Nessun appello disponibile per " + exam.name + ".")
-              }
-              var today = new Date().toISOString()
-              //IF NOT EXPIRED
-              //exam_sessions = exam_sessions.filter(dt => dt.session_date - today > 0)
+                var response = message("Nessun appello disponibile per " + exam.name + ".")
+              } else {
+                var today = new Date().toISOString()
+                //IF NOT EXPIRED
+                //exam_sessions = exam_sessions.filter(dt => dt.session_date - today > 0)
 
-              var response = buttons_list('Appelli disponibili per <b>' + exam.name + '</b>:',
-                exam_sessions,
-                es => es.name + ' | ' + es.session_date.toFormattedDateTime(),
-                es => 'Iscrivimi ' + es._id)
+                var response = buttons_list('Appelli disponibili per <b>' + exam.name + '</b>:',
+                  exam_sessions,
+                  es => es.name + ' | ' + es.session_date.toFormattedDateTime(),
+                  es => 'Iscrivimi ' + es._id)
+              }
               res.json(response)
             })
 

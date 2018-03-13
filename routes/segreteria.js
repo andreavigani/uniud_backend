@@ -12,7 +12,7 @@ var message = require('../utils/dialogflow_responses/message')
 var formatted_date_time = require('../utils/formatted-date-time');
 
 //Send Message Config
-function sendMessage(postData){
+function sendMessage(postData) {
     const options = {
         hostname: 'api.telegram.org',
         port: 443,
@@ -48,15 +48,15 @@ var Notice = require('../models/notice')
 
 router.post('/notice/', function (req, res) {
     console.log(req.body)
-    var message = 
+    var message =
         "\u{1F4E3} <b>" + req.body.title.toUpperCase() + "</b>\n" +
         "<i> " + req.body.category + "</i>\n" +
         "\u{1F464} <b>" + req.body.sender + "</b>\n \n" +
         req.body.content
-                
+
 
     Session.find().exec(function (err, sessions) {
-        
+
         sessions.map(uid => {
             const postData = JSON.stringify({
                 'chat_id': uid.user_id,
@@ -73,12 +73,13 @@ router.post('/notice/', function (req, res) {
 
 //Add Exam Session
 router.post('/examsession/', function (req, res) {
-    console.log(req.body)
-    var message = 
-        "\u{1F4C5} <b>NUOVO APPELLO DISPONIBILE.</b>"
-                
+    var message =
+        "\u{1F4C5} <b>NUOVO APPELLO DISPONIBILE.</b>\n" +
+        "Corso: " + req.body.exam_name + "\n" +
+        "Data: " + req.body.session_date
+
     Session.find().exec(function (err, sessions) {
-        
+
         sessions.map(uid => {
             //Send notice
             const postData = JSON.stringify({
@@ -93,5 +94,32 @@ router.post('/examsession/', function (req, res) {
         return res.json('Appello aggiunto')
     })
 })
+
+//Add Exam Grade Result
+router.post('/examgraderesult/', function (req, res) {
+    console.log(req.body)
+    var message =
+        "\u{270F} <b>NUOVO ESITO PUBBLICATO.</b>\n" +
+        "Corso: " + req.body.exam_name + "\n" +
+        "Voto: " + req.body.grade + "\n\n" +
+        "Vai alla bacheca /esiti per accettare o rifiutare"
+
+    Session.find({'id_number': req.body.id_number}).exec(function (err, sessions) {
+
+        sessions.map(uid => {
+            //Send notice
+            const postData = JSON.stringify({
+                'chat_id': uid.user_id,
+                'text': message,
+                'parse_mode': 'HTML'
+            })
+
+            sendMessage(postData);
+        })
+
+        return res.json('Esito aggiunto')
+    })
+})
+
 
 module.exports = router
