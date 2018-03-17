@@ -173,14 +173,33 @@ router.post('/exam_sessions', (req, res) => {
 
   if (!exam_name) {
 
-    Student.findById(req.id_number).populate('exam_grades.exam_id').exec()
+    Student.findById(req.id_number).exec()
       .catch(err => res.send(err))
       .then(student => {
-        var response = buttons_list('Per quale corso?\nEcco i tuoi corsi con appelli disponibili:',
-          student.exam_grades.filter(eg => !eg.grade),
-          e => e.exam_id.name,
-          e => 'Appelli ' + e.exam_id.name)
-        return res.json(response)
+
+        var student_exams = student.exam_grades.filter(eg => !eg.grade)
+        student_exams = student_exams.map(seg => seg.exam_id)
+
+        ExamSession.find({
+          'session_date': {
+            $gte: new Date()
+          },
+          'exam_id': {
+            $in: student_exams
+          }
+        }).populate('exam_id').exec(function (err, exam_sessions) {
+
+          if (exam_sessions.length == 0) {
+            var response = message("Nessun appello disponibile per i tuoi corsi.")
+            return res.json(response)
+          }
+
+          var response = buttons_list('Per quale corso?\nEcco i tuoi corsi con appelli disponibili:',
+            exam_sessions,
+            e => e.exam_id.name,
+            e => 'Appelli ' + e.exam_id.name)
+          return res.json(response)
+        })
       })
 
   } else {
@@ -192,25 +211,40 @@ router.post('/exam_sessions', (req, res) => {
         if (!exam) {
           return Student.findById(req.id_number).populate('exam_grades.exam_id').exec()
             .then(student => {
-              var response = buttons_list('Corso non trovato.\nPuoi scegliere fra i seguenti:',
-                student.exam_grades.filter(eg => !eg.grade),
-                e => e.exam_id.name,
-                e => 'Appelli ' + e.exam_id.name)
-              res.json(response)
+              var student_exams = student.exam_grades.filter(eg => !eg.grade)
+              student_exams = student_exams.map(seg => seg.exam_id)
+
+              ExamSession.find({
+                'session_date': {
+                  $gte: new Date()
+                },
+                'exam_id': {
+                  $in: student_exams
+                }
+              }).populate('exam_id').exec(function (err, exam_sessions) {
+
+                if (exam_sessions.length == 0) {
+                  var response = message("Nessun appello disponibile per i tuoi corsi.")
+                  return res.json(response)
+                }
+                var response = buttons_list('Corso non trovato.\nProva a scegliere uno di questi:',
+                  exam_sessions,
+                  e => e.exam_id.name,
+                  e => 'Appelli ' + e.exam_id.name)
+                res.json(response)
+              })
             })
         } else {
           return ExamSession.find({
               'exam_id': exam._id
             }).exec()
             .then(exam_sessions => {
-              console.log("ssd " + exam_sessions.length)
+              var today = new Date()
+              exam_sessions = exam_sessions.filter(dt => dt.session_date - today > 0)
+
               if (exam_sessions.length == 0) {
                 var response = message("Nessun appello disponibile per " + exam.name + ".")
               } else {
-                var today = new Date().toISOString()
-                //IF NOT EXPIRED
-                //exam_sessions = exam_sessions.filter(dt => dt.session_date - today > 0)
-
                 var response = buttons_list('Appelli disponibili per <b>' + exam.name + '</b>:',
                   exam_sessions,
                   es => es.name + ' | ' + es.session_date.toFormattedDateTime(),
@@ -240,7 +274,12 @@ router.post('/exam_session_enrollments', function (req, res) {
       }
     })
     .exec((err, exam_session_enrollments) => {
-      //console.log(JSON.stringify(exam_session_enrollments, null, '\t'))
+
+      var today = new Date()
+      exam_session_enrollments = exam_session_enrollments.filter(dt =>
+        dt.exam_session_id.session_date - today > 0
+      )
+
       var response = buttons_list('<b>Lista prenotazioni:</b> (tocca per cancellare)',
         exam_session_enrollments,
         ese => ese.exam_session_id.exam_id.name + ' | ' + ese.exam_session_id.session_date.toFormattedDateTime(),
@@ -309,33 +348,39 @@ router.post('/exam_times', function (req, res) {
   var day = days_it[new Date(req.body.result.parameters.date).getDay()]
 
   var exam_name = req.body.result.parameters.exam_name
+  Student.findById(req.id_number).exec(function (err, student) {
+    var student_exams = student.exam_grades.map(seg => seg.exam_id)
+    ExamTime.find({
+      'exam_id': {
+        $in: student_exams
+      }
+    }).populate('exam_id', 'name').populate('classroom_id', 'name').exec(function (err, examtimes) {
+      console.log(JSON.stringify(examtimes))
+      if (exam_name) {
+        examtimes = examtimes.filter(function (et) {
+          var reg_exp = new RegExp(exam_name, "gi");
+          if (reg_exp.test(et.exam_id.name)) exam_name = et.exam_id.name
+          return et.exam_id.name == exam_name
+        });
+      }
 
-  ExamTime.find().populate('exam_id', 'name').populate('classroom_id', 'name').exec(function (err, examtimes) {
+      if (day) {
+        examtimes.times = examtimes.map(examtime =>
+          examtime.times = examtime.times.filter(function (etd) {
+            return etd.day_of_week == day
+          })
+        )
+      }
+      console.log(JSON.stringify(examtimes))
+      var response = examtimes.map(examtime => examtime.times !== undefined && examtime.times.length ?
+        "Orari di " + examtime.exam_id.name + "\n" +
+        examtime.times.map(time => time.day_of_week + " " + time.start_time.getHours() + ":" + time.start_time.getMinutes() + " - " + time.end_time.getHours() + ":" + time.end_time.getMinutes()).join('\n') + '\n' +
+        "Aula " + examtime.classroom_id.name + "\n" : ''
+      ).join('\n')
+      if (!response) response = "Nessuna orario di lezione trovato."
+      res.json(message(response))
 
-    if (exam_name) {
-      examtimes = examtimes.filter(function (et) {
-        var reg_exp = new RegExp(exam_name, "gi");
-        if (reg_exp.test(et.exam_id.name)) exam_name = et.exam_id.name
-        return et.exam_id.name == exam_name
-      });
-    }
-
-    if (day) {
-      examtimes.times = examtimes.map(examtime =>
-        examtime.times = examtime.times.filter(function (etd) {
-          return etd.day_of_week == day
-        })
-      )
-    }
-    console.log(JSON.stringify(examtimes))
-    var response = examtimes.map(examtime => examtime.times !== undefined && examtime.times.length ?
-      "Orari di " + examtime.exam_id.name + "\n" +
-      examtime.times.map(time => time.day_of_week + " " + time.start_time.getHours() + ":" + time.start_time.getMinutes() + " - " + time.end_time.getHours() + ":" + time.end_time.getMinutes()).join('\n') + '\n' +
-      "Aula " + examtime.classroom_id.name + "\n" : ''
-    ).join('\n')
-    if (!response) response = "Nessuna orario di lezione trovato."
-    res.json(message(response))
-
+    })
   })
 })
 
