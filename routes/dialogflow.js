@@ -279,11 +279,11 @@ router.post('/exam_session_enrollments', function (req, res) {
       exam_session_enrollments = exam_session_enrollments.filter(dt =>
         dt.exam_session_id.session_date - today > 0
       )
-
       var response = buttons_list('<b>Lista prenotazioni:</b> (tocca per cancellare)',
         exam_session_enrollments,
         ese => ese.exam_session_id.exam_id.name + ' | ' + ese.exam_session_id.session_date.toFormattedDateTime(),
         ese => 'Cancella prenotazione ' + ese._id)
+      if(exam_session_enrollments.length<1) var response = message("Non sei iscritto a nessun /appello.")      
       res.json(response)
     })
 })
@@ -314,7 +314,7 @@ router.post('/add_exam_session_enrollment', function (req, res) {
           ese => 'Mostra bacheca prenotazioni')
         return res.json(response)
       } else {
-        exam_session_enrollment.save(function (err) {
+        exam_session_enrollment.save(function (cerr) {
           if (err)
             return res.send(err)
         })
@@ -336,7 +336,7 @@ router.post('/del_exam_session_enrollment', function (req, res) {
   }, function (err, model) {
     if (err)
       return res.send(err)
-    res.json(message("Cancellazione avvenuta con successo."))
+    res.json(message("Cancellazione prenotazione avvenuta con successo."))
   })
 })
 
@@ -355,7 +355,6 @@ router.post('/exam_times', function (req, res) {
         $in: student_exams
       }
     }).populate('exam_id', 'name').populate('classroom_id', 'name').exec(function (err, examtimes) {
-      console.log(JSON.stringify(examtimes))
       if (exam_name) {
         examtimes = examtimes.filter(function (et) {
           var reg_exp = new RegExp(exam_name, "gi");
@@ -373,11 +372,11 @@ router.post('/exam_times', function (req, res) {
       }
       console.log(JSON.stringify(examtimes))
       var response = examtimes.map(examtime => examtime.times !== undefined && examtime.times.length ?
-        "Orari di " + examtime.exam_id.name + "\n" +
+        "\u231A Orari lezioni di " + examtime.exam_id.name + "\n" +
         examtime.times.map(time => time.day_of_week + " " + time.start_time.getHours() + ":" + time.start_time.getMinutes() + " - " + time.end_time.getHours() + ":" + time.end_time.getMinutes()).join('\n') + '\n' +
         "Aula " + examtime.classroom_id.name + "\n" : ''
       ).join('\n')
-      if (!response) response = "Nessuna orario di lezione trovato."
+      if (response.length<2) response = "Nessuna orario di lezione trovato."
       res.json(message(response))
 
     })
@@ -407,12 +406,37 @@ router.post('/teacher_contacts', function (req, res) {
   })
 })
 
+//FEES
+var Fee = require('../models/fee')
+router.post('/fees', function (req, res) {
+  Fee.find({'student_id_number' : req.id_number}).exec(function (err, fees) {
+    if (err)
+      return res.send(err)
+
+    if (fees.length == 0) {
+      var response = message('Nessuna tassa disponibile.')
+    } else {
+      var icon
+      var response = buttons_list('<b>Elenco tasse</b> (tocca per pagare con pagoPA):',
+        fees,
+        f => f.status ? f.description + " | €" + f.amount + " | " + f.expiration_date.toFormattedDate() + ' \u2705' : f.description + " | €" + f.amount + " | " + f.expiration_date.toFormattedDate() + ' \u2b55',
+        f => f.status ? 'Fattura' + f._id : 'Paga ' + f._id)
+    }
+    res.json(response)
+  })
+})
+
 //WEB SEARCH
 router.post('/web_search', function (req, res) {
-  if (req.body.result.parameters.keywords)
+  if (req.body.result.parameters.keywords){
     keywords = req.body.result.parameters.keywords
-  else
+    var msg = ""
+  }
+  else {
     keywords = req.body.result.resolvedQuery
+    var msg = "Mi dispiace, non sono in grado di risponderti. \n"
+  }
+
 
   var search_result
   googleSearch.build({
@@ -433,7 +457,7 @@ router.post('/web_search', function (req, res) {
         }
       })
       var response = card(
-        "Mi dispiace, non sono in grado di risponderti. \n" +
+        msg +
         "Cercando online ho trovato qualcosa che potrebbe aiutarti: \n", search_result)
     } else {
       var answers = [
