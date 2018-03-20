@@ -95,6 +95,18 @@ router.post('/exams', function (req, res) {
   })
 })
 
+//EXAM GRADE DETAILS
+router.post('/exam_grades_details', function (req, res) {
+  var examgrade_id = req.body.result.parameters.examgrade_id
+  Student.findById(req.id_number).exec(function (err, student) {
+    if (err)
+      return res.send(err)
+    var exam_grade = student.exam_grades.filter(eg => eg._id == examgrade_id)
+    var response = message('Valutazione già registrata: ' + exam_grade[0].grade + '/30')
+    res.json(response)
+  })
+})
+
 //EXAM GRADES RESULTS
 router.post('/exams_results', function (req, res) {
   Student.findById(req.id_number).populate('exam_grades.exam_id').exec(function (err, student) {
@@ -142,7 +154,6 @@ router.post('/update_exam_result', function (req, res) {
   Student.findById(req.id_number).exec(function (err, student) {
     if (err)
       return res.send(err)
-    console.log(student.exam_grades)
     student.exam_grades = student.exam_grades.map(function (eg) {
       if (eg._id == examgrade_id) {
         eg.status = choice
@@ -245,7 +256,7 @@ router.post('/exam_sessions', (req, res) => {
               if (exam_sessions.length == 0) {
                 var response = message("Nessun appello disponibile per " + exam.name + ".")
               } else {
-                var response = buttons_list('Appelli disponibili per <b>' + exam.name + '</b>:',
+                var response = buttons_list('Appelli disponibili per <b>' + exam.name + '</b> (tocca per iscriverti):',
                   exam_sessions,
                   es => es.name + ' | ' + es.session_date.toFormattedDateTime(),
                   es => 'Iscrivimi ' + es._id)
@@ -283,7 +294,7 @@ router.post('/exam_session_enrollments', function (req, res) {
         exam_session_enrollments,
         ese => ese.exam_session_id.exam_id.name + ' | ' + ese.exam_session_id.session_date.toFormattedDateTime(),
         ese => 'Cancella prenotazione ' + ese._id)
-      if(exam_session_enrollments.length<1) var response = message("Non sei iscritto a nessun /appello.")      
+      if (exam_session_enrollments.length < 1) var response = message("Non sei iscritto a nessun /appello.")
       res.json(response)
     })
 })
@@ -318,8 +329,7 @@ router.post('/add_exam_session_enrollment', function (req, res) {
           if (err)
             return res.send(err)
         })
-        console.log(JSON.stringify(exam_session_enrollment))
-        var response = buttons_list("Prenotazione all'appello effettuata.",
+        var response = buttons_list("Iscrizione all'appello effettuata.",
           exam_session_enrollment = [exam_session_enrollment],
           ese => 'Mostra bacheca prenotazioni',
           ese => 'Mostra bacheca prenotazioni')
@@ -376,7 +386,7 @@ router.post('/exam_times', function (req, res) {
         examtime.times.map(time => time.day_of_week + " " + time.start_time.getHours() + ":" + time.start_time.getMinutes() + " - " + time.end_time.getHours() + ":" + time.end_time.getMinutes()).join('\n') + '\n' +
         "Aula " + examtime.classroom_id.name + "\n" : ''
       ).join('\n')
-      if (response.length<2) response = "Nessuna orario di lezione trovato."
+      if (response.length < 2) response = "Nessuna orario di lezione trovato."
       res.json(message(response))
 
     })
@@ -409,7 +419,9 @@ router.post('/teacher_contacts', function (req, res) {
 //FEES
 var Fee = require('../models/fee')
 router.post('/fees', function (req, res) {
-  Fee.find({'student_id_number' : req.id_number}).exec(function (err, fees) {
+  Fee.find({
+    'student_id_number': req.id_number
+  }).exec(function (err, fees) {
     if (err)
       return res.send(err)
 
@@ -428,11 +440,10 @@ router.post('/fees', function (req, res) {
 
 //WEB SEARCH
 router.post('/web_search', function (req, res) {
-  if (req.body.result.parameters.keywords){
+  if (req.body.result.parameters.keywords) {
     keywords = req.body.result.parameters.keywords
     var msg = ""
-  }
-  else {
+  } else {
     keywords = req.body.result.resolvedQuery
     var msg = "Mi dispiace, non sono in grado di risponderti. \n"
   }
